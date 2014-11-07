@@ -2,7 +2,7 @@
 
 /**
 * payment gateway integration for WooCommerce
-* @ref http://wcdocs.woothemes.com/codex/extending/payment-gateway-api/
+* @link http://wcdocs.woothemes.com/codex/extending/payment-gateway-api/
 */
 class EwayPaymentsWoo extends WC_Payment_Gateway {
 
@@ -26,23 +26,26 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 		$this->init_settings();
 
 		// define user set variables
-		$this->enabled			= $this->settings['enabled'];
-		$this->title			= $this->settings['title'];
-		$this->description		= $this->settings['description'];
-		$this->availability		= $this->settings['availability'];
-		$this->countries		= $this->settings['countries'];
-		$this->eway_customerid	= $this->settings['eway_customerid'];
-		$this->eway_sandbox		= $this->settings['eway_sandbox'];
-		$this->eway_stored		= $this->settings['eway_stored'];
-		$this->eway_beagle		= $this->settings['eway_beagle'];
-		$this->eway_card_form	= $this->settings['eway_card_form'];
-		$this->eway_card_msg	= $this->settings['eway_card_msg'];
+		$this->enabled				= $this->settings['enabled'];
+		$this->title				= $this->settings['title'];
+		$this->description			= $this->settings['description'];
+		$this->availability			= $this->settings['availability'];
+		$this->countries			= $this->settings['countries'];
+		$this->eway_customerid		= $this->settings['eway_customerid'];
+		$this->eway_sandbox			= $this->settings['eway_sandbox'];
+		$this->eway_stored			= $this->settings['eway_stored'];
+		$this->eway_beagle			= $this->settings['eway_beagle'];
+		$this->eway_card_form		= $this->settings['eway_card_form'];
+		$this->eway_card_msg		= $this->settings['eway_card_msg'];
+		$this->eway_site_seal		= $this->settings['eway_site_seal'];
+		$this->eway_site_seal_code	= $this->settings['eway_site_seal_code'];
 
 		// handle support for standard WooCommerce credit card form instead of our custom template
 		if ($this->eway_card_form == 'yes') {
 			$this->supports[] = 'default_credit_card_form';
 			add_filter('woocommerce_credit_card_form_fields', array($this, 'wooCcFormFields'), 10, 2);
 			add_action('woocommerce_credit_card_form_start', array($this, 'wooCcFormStart'));
+			add_action('woocommerce_credit_card_form_end', array($this, 'wooCcFormEnd'));
 		}
 
 		// add email fields
@@ -147,6 +150,20 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 							'desc_tip'		=> true,
 							'default'		=> '',
 						),
+			'eway_site_seal' => array(
+							'title' 		=> 'Show eWAY Site Seal',
+							'label' 		=> 'show the eWAY site seal after the credit card fields',
+							'type' 			=> 'checkbox',
+							'description' 	=> 'Add the verified eWAY Site Seal to your checkout',
+							'desc_tip'		=> true,
+							'default' 		=> 'no',
+						),
+			'eway_site_seal_code' => array(
+							'type' 			=> 'textarea',
+							'description' 	=> '<a href="http://www.eway.com.au/developers/resources/site-seal-generator" target="_blank">generate your site seal on the eWAY website</a> and paste it here',
+							'default'		=> '',
+							'css'			=> 'height:14em',
+						),
 			);
 	}
 
@@ -156,7 +173,16 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 	public function init_settings() {
 		parent::init_settings();
 
-		if ($form_fields = $this->get_form_fields()) {
+
+		if (is_callable(array($this, 'get_form_fields'))) {
+			$form_fields = $this->get_form_fields();
+		}
+		else {
+			// WooCommerce 2.0.20 or earlier
+			$form_fields = $this->form_fields;
+		}
+
+		if ($form_fields) {
 			foreach ($form_fields as $key => $value) {
 				if (!isset($this->settings[$key])) {
 					$this->settings[$key] = isset($value['default']) ? $value['default'] : '';
@@ -198,6 +224,18 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 		if ($gateway == $this->id) {
 			if (!empty($this->settings['eway_card_msg'])) {
 				printf('<span class="eway-credit-card-message">%s</span>', $this->settings['eway_card_msg']);
+			}
+		}
+	}
+
+	/**
+	* show site seal after fields in standard WooCommerce credit card form, if entered
+	* @param string $gateway
+	*/
+	public function wooCcFormEnd($gateway) {
+		if ($gateway == $this->id) {
+			if (!empty($this->settings['eway_site_seal']) && !empty($this->settings['eway_site_seal_code']) && $this->settings['eway_site_seal'] == 'yes') {
+				echo $this->settings['eway_site_seal_code'];
 			}
 		}
 	}
@@ -275,8 +313,6 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 	* @return bool
 	*/
 	public function validate_fields() {
-		global $woocommerce;
-
 		// check for missing or invalid values
 		$errors = 0;
 		$expiryError = false;
@@ -341,18 +377,18 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 		else
 			$eway = new EwayPaymentsPayment($this->eway_customerid, $isLiveSite);
 
-		$eway->invoiceDescription = get_bloginfo('name');
-		$eway->invoiceReference = $order_id;										// customer invoice reference
-		$eway->transactionNumber = $order_id;										// transaction reference
-		$eway->cardHoldersName = $ccfields['eway_card_name'];
-		$eway->cardNumber = strtr($ccfields['eway_card_number'], array(' ' => '', '-' => ''));
-		$eway->cardExpiryMonth = $ccfields['eway_expiry_month'];
-		$eway->cardExpiryYear = $ccfields['eway_expiry_year'];
-		$eway->cardVerificationNumber = $ccfields['eway_cvn'];
-		$eway->firstName = $order->billing_first_name;
-		$eway->lastName = $order->billing_last_name;
-		$eway->emailAddress = $order->billing_email;
-		$eway->postcode = $order->billing_postcode;
+		$eway->invoiceDescription		= get_bloginfo('name');
+		$eway->invoiceReference			= $order_id;										// customer invoice reference
+		$eway->transactionNumber		= $order_id;										// transaction reference
+		$eway->cardHoldersName			= $ccfields['eway_card_name'];
+		$eway->cardNumber				= strtr($ccfields['eway_card_number'], array(' ' => '', '-' => ''));
+		$eway->cardExpiryMonth			= $ccfields['eway_expiry_month'];
+		$eway->cardExpiryYear			= $ccfields['eway_expiry_year'];
+		$eway->cardVerificationNumber	= $ccfields['eway_cvn'];
+		$eway->firstName				= $order->billing_first_name;
+		$eway->lastName					= $order->billing_last_name;
+		$eway->emailAddress				= $order->billing_email;
+		$eway->postcode					= $order->billing_postcode;
 
 		// for Beagle (free) security
 		if ($this->eway_beagle == 'yes') {
@@ -391,14 +427,8 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 		$total = $order->order_total;
 		$eway->amount = $isLiveSite ? $total : ceil($total);
 
-//~ error_log(__METHOD__ . "\n" . print_r($eway,1));
-//~ error_log(__METHOD__ . "\n" . $eway->getPaymentXML());
-//~ return array('result' => 'failure');
-
 		try {
 			$response = $eway->processPayment();
-
-//~ error_log(__METHOD__ . "\n" . print_r($response,1));
 
 			if ($response->status) {
 				// transaction was successful, so record details and complete payment
@@ -466,14 +496,12 @@ class EwayPaymentsWoo extends WC_Payment_Gateway {
 
 	/**
 	* Read a field from form post input.
-	*
 	* Guaranteed to return a string, trimmed of leading and trailing spaces, sloshes stripped out.
-	*
-	* @return string
 	* @param string $fieldname name of the field in the form post
+	* @return string
 	*/
 	protected static function getPostValue($fieldname) {
-		return isset($_POST[$fieldname]) ? stripslashes(trim((string) $_POST[$fieldname])) : '';
+		return isset($_POST[$fieldname]) ? wp_unslash(trim((string) $_POST[$fieldname])) : '';
 	}
 
 }

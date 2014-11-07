@@ -16,12 +16,12 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 	* Set up gateaway and add relevant actions/filters
 	*/
 	public function __construct() {
-		$this->gateway = EM_EWAY_GATEWAY;
-		$this->title = 'eWAY';
-		$this->status = 4;
-		$this->status_txt = 'Processing (eWAY)';
-		$this->button_enabled = false;
-		$this->supports_multiple_bookings = true;
+		$this->gateway						= EM_EWAY_GATEWAY;
+		$this->title						= 'eWAY';
+		$this->status						= 4;
+		$this->status_txt					= 'Processing (eWAY)';
+		$this->button_enabled				= false;
+		$this->supports_multiple_bookings	= true;
 
 		// ensure options are present, set to defaults if not
 		$defaults = array (
@@ -45,7 +45,13 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 		parent::__construct();
 
 		if ($this->is_active()) {
-			// force SSL for booking submissions, since we have card info
+			// force SSL for booking submissions on live site, because credit card details need to be encrypted
+			if (get_option('em_'.EM_EWAY_GATEWAY.'_mode') == 'live') {
+				add_filter('em_wp_localize_script', array(__CLASS__, 'forceBookingAjaxSSL'));
+				add_filter('em_booking_form_action_url', array(__CLASS__, 'force_ssl'));
+			}
+
+			// force whole bookings page to SSL if settings require
 			if (get_option('em_'.EM_EWAY_GATEWAY.'_ssl_force')) {
 				add_action('template_redirect', array(__CLASS__, 'redirect_ssl'));
 			}
@@ -68,7 +74,7 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 	* @param string $fieldname name of the field in the form post
 	*/
 	protected static function getPostValue($fieldname) {
-		return isset($_POST[$fieldname]) ? stripslashes(trim($_POST[$fieldname])) : '';
+		return isset($_POST[$fieldname]) ? wp_unslash(trim($_POST[$fieldname])) : '';
 	}
 
 	/**
@@ -137,6 +143,30 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 		}
 
 		return $result;
+	}
+
+	/**
+	* This function intercepts the previous booking form url from the javascript localized array of EM variables and forces it to be an HTTPS url.
+	* @param array $localized_array
+	* @return array
+	*/
+	public static function forceBookingAjaxSSL($localized_array) {
+		$localized_array['bookingajaxurl'] = self::force_ssl($localized_array['bookingajaxurl']);
+		return $localized_array;
+	}
+
+	/**
+	* Turns any url into an HTTPS url.
+	* @param string $url
+	* @return string
+	*/
+	public static function force_ssl($url) {
+		// only fix if source URL starts with http://
+		if (stripos($url, 'http://') === 0) {
+			$url = 'https' . substr($url, 4);
+		}
+
+		return $url;
 	}
 
 	/**
@@ -287,7 +317,7 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 		$optYears = '';
   		$exp_date_year = self::getPostValue('x_exp_date_year');
 		foreach (range($thisYear, $thisYear + 15) as $year) {
-			$selected = selected($option, $exp_date_year, false);
+			$selected = selected($year, $exp_date_year, false);
 			$optYears .= "<option $selected value='$year'>$year</option>\n";
 		}
 
@@ -316,26 +346,28 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 			$customerID = get_option('em_' . EM_EWAY_GATEWAY . '_cust_id');
 		}
 
-		if (get_option('em_' . EM_EWAY_GATEWAY . '_stored'))
+		if (get_option('em_' . EM_EWAY_GATEWAY . '_stored')) {
 			$eway = new EwayPaymentsStoredPayment($customerID, $isLiveSite);
-		else
+		}
+		else {
 			$eway = new EwayPaymentsPayment($customerID, $isLiveSite);
+		}
 
-		$eway->invoiceDescription = $EM_Booking->get_event()->event_name;
-		//~ $eway->invoiceDescription = $EM_Booking->output('#_BOOKINGTICKETDESCRIPTION');
-		$eway->invoiceReference = $EM_Booking->booking_id;						// customer invoice reference
-		$eway->transactionNumber = $EM_Booking->booking_id;						// transaction reference
-		$eway->cardHoldersName = self::getPostValue('x_card_name');
-		$eway->cardNumber = strtr(self::getPostValue('x_card_num'), array(' ' => '', '-' => ''));
-		$eway->cardExpiryMonth = self::getPostValue('x_exp_date_month');
-		$eway->cardExpiryYear = self::getPostValue('x_exp_date_year');
-		$eway->cardVerificationNumber = self::getPostValue('x_card_code');
-		$eway->emailAddress = $EM_Booking->get_person()->user_email;
-		$eway->postcode = self::getPostValue('zip');
+		$eway->invoiceDescription			= $EM_Booking->get_event()->event_name;
+		//~ $eway->invoiceDescription		= $EM_Booking->output('#_BOOKINGTICKETDESCRIPTION');
+		$eway->invoiceReference				= $EM_Booking->booking_id;						// customer invoice reference
+		$eway->transactionNumber			= $EM_Booking->booking_id;						// transaction reference
+		$eway->cardHoldersName				= self::getPostValue('x_card_name');
+		$eway->cardNumber					= strtr(self::getPostValue('x_card_num'), array(' ' => '', '-' => ''));
+		$eway->cardExpiryMonth				= self::getPostValue('x_exp_date_month');
+		$eway->cardExpiryYear				= self::getPostValue('x_exp_date_year');
+		$eway->cardVerificationNumber		= self::getPostValue('x_card_code');
+		$eway->emailAddress					= $EM_Booking->get_person()->user_email;
+		$eway->postcode						= self::getPostValue('zip');
 
 		// for Beagle (free) security
 		if (get_option('em_' . EM_EWAY_GATEWAY . '_beagle')) {
-			$eway->customerCountryCode = EM_Gateways::get_customer_field('country', $EM_Booking);
+			$eway->customerCountryCode		= EM_Gateways::get_customer_field('country', $EM_Booking);
 		}
 
 		// attempt to split name into parts, and hope to not offend anyone!
@@ -372,16 +404,10 @@ class EwayPaymentsEventsManager extends EM_Gateway {
 		$eway->option2 = apply_filters('em_eway_option2', '', $EM_Booking);
 		$eway->option3 = apply_filters('em_eway_option3', '', $EM_Booking);
 
-//~ error_log(__METHOD__ . "\n" . print_r($eway,1));
-//~ error_log(__METHOD__ . "\n" . $eway->getPaymentXML());
-//~ return array('result' => 'failure');
-
 		// Get Payment
 		try {
 			$result = false;
 			$response = $eway->processPayment();
-
-//~ error_log(__METHOD__ . "\n" . print_r($response,1));
 
 			if ($response->status) {
 				// transaction was successful, so record transaction number and continue
