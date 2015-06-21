@@ -2,7 +2,7 @@
 // WooCommerce admin settings page
 ?>
 
-<img style="float:right" src="<?php echo EwayPaymentsPlugin::getUrlPath(); ?>images/eway-siteseal.png" />
+<img style="float:right" src="<?php echo esc_url(EwayPaymentsPlugin::getUrlPath()); ?>images/eway-siteseal.png" />
 <h3><?php echo esc_html($this->admin_page_heading); ?></h3>
 <p><?php echo esc_html($this->admin_page_description); ?></p>
 <table class="form-table">
@@ -17,9 +17,9 @@
 	* show warning message if they are
 	*/
 	function setVisibility() {
-		var	useTest = ($("#woocommerce_eway_payments_eway_sandbox").filter(":checked").val() === "1"),
-			useBeagle = ($("#woocommerce_eway_payments_eway_beagle").filter(":checked").val() === "1"),
-			useStored = ($("#woocommerce_eway_payments_eway_stored").filter(":checked").val() === "1");
+		var	useTest   = ($("#woocommerce_eway_payments_eway_sandbox").filter(":checked").val() === "1"),
+			useBeagle = ($("#woocommerce_eway_payments_eway_beagle").filter(":checked").val()  === "1"),
+			useStored = ($("#woocommerce_eway_payments_eway_stored").filter(":checked").val()  === "1");
 
 		function display(element, visible) {
 			if (visible)

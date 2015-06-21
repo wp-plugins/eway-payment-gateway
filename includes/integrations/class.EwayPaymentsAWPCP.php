@@ -2,7 +2,7 @@
 
 /**
 * payment gateway integration for Another WordPress Classifieds Plugin
-* @link http://www.awpcp.com/
+* @link http://awpcp.com/
 */
 class EwayPaymentsAWPCP {
 
@@ -39,6 +39,7 @@ class EwayPaymentsAWPCP {
 		$this->paymentsAPI = $payments;
 
 		if (get_awpcp_option('activateeway')) {
+			require EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/integrations/class.EwayPaymentsAWPCP3.php';
 			$this->paymentsAPI->register_payment_method(new EwayPaymentsAWPCP3($this));
 		}
 	}
@@ -79,11 +80,11 @@ class EwayPaymentsAWPCP {
 			'checkbox', 1, 'Force special test ID 87654321 for sandbox?');
 
 		$awpcp->settings->add_setting($section, 'eway_stored', 'Stored payments', 'checkbox', 0,
-			"<a href='http://www.eway.com.au/how-it-works/payment-products#stored-payments' target='_blank'>Stored payments</a> records payment details but doesn't bill immediately. Useful when ads must be approved by admin, allowing you to reject payments for rejected ads.");
+			"Stored payments records payment details but doesn't bill immediately. Useful when ads must be approved by admin, allowing you to reject payments for rejected ads.");
 
 		// TODO: add Beagle if new version supports taking country info before billing
 		//~ $awpcp->settings->add_setting($section, 'eway_beagle', 'Beagle (anti-fraud)', 'checkbox', 0,
-			//~ "<a href='http://www.eway.com.au/developers/resources/beagle-(free)-rules' target='_blank'>Beagle</a> is a service from eWAY that provides a level of fraud protection for your transactions. It uses information about the IP address of the purchaser to suggest whether there is a risk of fraud. You must configure <a href='http://www.eway.com.au/developers/resources/beagle-(free)-rules' target='_blank'>Beagle rules</a> in your MYeWAY console before enabling Beagle");
+			//~ "<a href='https://www.eway.com.au/developers/api/beagle-lite' target='_blank'>Beagle</a> is a service from eWAY that provides a level of fraud protection for your transactions. It uses information about the IP address of the purchaser to suggest whether there is a risk of fraud. You must configure Beagle rules in your MYeWAY console before enabling Beagle");
 
 		$awpcp->settings->add_setting($section, 'eway_card_message', 'Credit card message', 'textfield', '',
 			'<br />Message to show above credit card fields, e.g. &quot;Visa and Mastercard only&quot;');
@@ -94,7 +95,7 @@ class EwayPaymentsAWPCP {
 	*/
 	public function awpcpCheckoutStepText($text, $form_values, $transaction) {
 		if ($transaction->get('payment-method') == self::PAYMENT_METHOD) {
-			$text = "Please enter your credit card details for secure payment via <a target='_blank' href='http://www.eway.com.au/'>eWAY</a>.";
+			$text = "Please enter your credit card details for secure payment via <a target='_blank' href='https://www.eway.com.au/'>eWAY</a>.";
 		}
 
 		return $text;
@@ -313,8 +314,8 @@ class EwayPaymentsAWPCP {
 			$profile = get_user_meta($user->ID, 'awpcp-profile', true);
 			$parts = array (
 				isset($profile['address']) ? $profile['address'] : '',
-				isset($profile['city']) ? $profile['city'] : '',
-				isset($profile['state']) ? $profile['state'] : '',
+				isset($profile['city'])    ? $profile['city']    : '',
+				isset($profile['state'])   ? $profile['state']   : '',
 			);
 			$eway->address = implode(', ', array_filter($parts, 'strlen'));
 		}
@@ -325,11 +326,11 @@ class EwayPaymentsAWPCP {
 		}
 
 		// allow plugins/themes to modify invoice description and reference, and set option fields
-		$eway->invoiceDescription = apply_filters('awpcp_eway_invoice_desc', $eway->invoiceDescription, $transaction);
-		$eway->invoiceReference = apply_filters('awpcp_eway_invoice_ref', $eway->invoiceReference, $transaction);
-		$eway->option1 = apply_filters('awpcp_eway_option1', '', $transaction);
-		$eway->option2 = apply_filters('awpcp_eway_option2', '', $transaction);
-		$eway->option3 = apply_filters('awpcp_eway_option3', '', $transaction);
+		$eway->invoiceDescription			= apply_filters('awpcp_eway_invoice_desc', $eway->invoiceDescription, $transaction);
+		$eway->invoiceReference				= apply_filters('awpcp_eway_invoice_ref', $eway->invoiceReference, $transaction);
+		$eway->option1						= apply_filters('awpcp_eway_option1', '', $transaction);
+		$eway->option2						= apply_filters('awpcp_eway_option2', '', $transaction);
+		$eway->option3						= apply_filters('awpcp_eway_option3', '', $transaction);
 
 		// if live, pass through amount exactly, but if using test site, round up to whole dollars or eWAY will fail
 		if (method_exists($transaction, 'get_totals')) {
@@ -359,4 +360,5 @@ class EwayPaymentsAWPCP {
 	protected static function getPostValue($fieldname) {
 		return isset($_POST[$fieldname]) ? wp_unslash(trim($_POST[$fieldname])) : '';
 	}
+
 }

@@ -6,8 +6,8 @@ Author URI: http://webaware.com.au/
 Donate link: http://shop.webaware.com.au/downloads/eway-payment-gateway/
 Tags: eway, payment, ecommerce, e-commerce, credit cards, australia, wp e-commerce, woocommerce, events manager, events, booking
 Requires at least: 3.6.1
-Tested up to: 4.2
-Stable tag: 3.3.0
+Tested up to: 4.2.2
+Stable tag: 3.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,14 +15,14 @@ Integrate some popular WordPress plugins with the eWAY credit card payment gatew
 
 == Description ==
 
-The eWAY Payment Gateway adds a credit card payment gateway integration for [eWAY in Australia](http://www.eway.com.au/) [Direct Payments API](http://www.eway.com.au/developers/api/direct-payments) and [Stored Payments API](http://www.eway.com.au/developers/api/stored-%28xml%29). These plugins are supported:
+The eWAY Payment Gateway adds a credit card payment gateway integration for [eWAY in Australia](https://www.eway.com.au/) [Direct Payments API](https://www.eway.com.au/developers/api/direct-payments) and Stored Payments API. These plugins are supported:
 
-* [WP e-Commerce](http://wordpress.org/plugins/wp-e-commerce/) shopping cart plugin
-* [WooCommerce](http://wordpress.org/plugins/woocommerce/) shopping cart plugin
-* [Another WordPress Classifieds Plugin](http://wordpress.org/plugins/another-wordpress-classifieds-plugin/) classified ads plugin
-* [Events Manager Pro](http://eventsmanagerpro.com/) event bookings plugin
+* [WP e-Commerce](https://wordpress.org/plugins/wp-e-commerce/) shopping cart plugin
+* [WooCommerce](https://wordpress.org/plugins/woocommerce/) shopping cart plugin
+* [Another WordPress Classifieds Plugin](https://wordpress.org/plugins/another-wordpress-classifieds-plugin/) classified ads plugin
+* [Events Manager Pro](https://eventsmanagerpro.com/) event bookings plugin
 
-Looking for a Gravity Forms integration? Try [Gravity Forms eWAY](http://wordpress.org/plugins/gravityforms-eway/).
+Looking for a Gravity Forms integration? Try [Gravity Forms eWAY](https://wordpress.org/plugins/gravityforms-eway/).
 
 = Features =
 
@@ -39,7 +39,7 @@ Looking for a Gravity Forms integration? Try [Gravity Forms eWAY](http://wordpre
 * you need to install an e-commerce plugin listed above
 * you need an SSL certificate for your hosting account
 * you need an account with eWAY Australia
-* this plugin uses eWAY's [Direct Payments API](http://www.eway.com.au/developers/api/direct-payments) and [Stored Payments API](http://www.eway.com.au/developers/api/stored-%28xml%29), but does not support eWAY's hosted payment form
+* this plugin uses eWAY's [Direct Payments API](https://www.eway.com.au/developers/api/direct-payments) and Stored Payments API, but does not support eWAY's hosted payment form
 
 == Installation ==
 
@@ -84,7 +84,7 @@ eWAY is a leading provider of online payments solutions for Australia, New Zeala
 
 Not yet. I know it can be done but I haven't had a website that needs it yet, so have not written the code for it.
 
-If you just need a simple way to record recurring payments such as donations, you might want to try [Gravity Forms](http://www.gravityforms.com/) and [Gravity Forms eWAY](http://wordpress.org/extend/plugins/gravityforms-eway/) which does support recurring payments.
+If you just need a simple way to record recurring payments such as donations, you might want to try [Gravity Forms](http://webaware.com.au/get-gravity-forms) and [Gravity Forms eWAY](https://wordpress.org/extend/plugins/gravityforms-eway/) which does support recurring payments.
 
 = Can I use other eWAY gateways, outside of Australia? =
 
@@ -92,15 +92,15 @@ Not yet. There are plans to integrate eWAY's Rapid Payments API sometime in 2013
 
 = Can I use the eWAY hosted payment form with this plugin? =
 
-No, this plugin only supports the [Direct Payments API](http://www.eway.com.au/developers/api/direct-payments).
+No, this plugin only supports the [Direct Payments API](https://www.eway.com.au/developers/api/direct-payments).
 
 = What is Stored Payments? =
 
-Like Direct Payments, the purchase information is sent to eWAY for processing, but with [Stored Payments](http://www.eway.com.au/how-it-works/payment-products#stored-payments) it isn't processed right away. The merchant needs to login to their eWAY Business Centre to complete each transaction. It's useful for shops that do drop-shipping and want to delay billing. Most websites should have this option set to No.
+Like Direct Payments, the purchase information is sent to eWAY for processing, but with Stored Payments it isn't processed right away. The merchant needs to login to their eWAY Business Centre to complete each transaction. It's useful for shops that do drop-shipping and want to delay billing. Most websites should have this option set to No.
 
 = What is Beagle? =
 
-[Beagle](http://www.eway.com.au/how-it-works/payment-products#beagle-%28free%29) is a service from eWAY that provides a level of fraud protection for your transactions. It uses information about the IP address of the purchaser to suggest whether there is a risk of fraud. You must configure [Beagle rules](http://www.eway.com.au/developers/resources/beagle-%28free%29-rules) in your MYeWAY console before enabling Beagle in this plugin.
+[Beagle](https://www.eway.com.au/developers/api/beagle-lite) is a service from eWAY that provides a level of fraud protection for your transactions. It uses information about the IP address of the purchaser to suggest whether there is a risk of fraud. You must configure Beagle rules in your MYeWAY console before enabling Beagle in this plugin.
 
 **NB**: You will also need to add a Country field to your checkout form. Beagle works by comparing the country of the address with the country where the purchaser is using the Internet; Beagle won't be used when checking out without a country selected.
 
@@ -190,13 +190,23 @@ Thanks for sponsoring new features for eWAY Payment Gateway!
 
 == Changelog ==
 
-= 3.3.0 [2014-11-07] =
+= 3.4.0, 2015-06-21 =
+
+* fixed: WP eCommerce sometimes loses the transaction authcode on sites with an object cache (like memcached)
+* added: some precautionary XSS prevention
+* changed: credit card fields all now have autocomplete disabled, for better card security
+* changed: WooCommerce customer reference now accepts the filtered order number (`$order->get_order_number()`)
+* changed: some code refactoring for easier maintenance
+
+= 3.3.0, 2014-11-07 =
+
 * fixed: force Events Manager bookings form AJAX url and form action to use HTTPS if forcing SSL for events with bookings
 * fixed: WooCommerce 2.0.20 settings backwards compatibility
 * added: eWAY site seal support for WooCommerce
 * changed: updated screenshots
 
-= 3.2.0 [2014-06-28] =
+= 3.2.0, 2014-06-28 =
+
 * fixed: WooCommerce 2.1 error messages use `wc_add_notice()` (fixes deprecated notice)
 * fixed: Events Manager bookings admin was asking for credit card details when modifying a booking
 * fixed: Another WordPress Classified Plugin hooks now pass `$transaction` as second argument
@@ -206,88 +216,108 @@ Thanks for sponsoring new features for eWAY Payment Gateway!
 * changed: use standard WooCommerce credit card fields if setting selected (new default); old template is still available for sites that require it
 * changed: some code refactoring
 
-= 3.1.4 [2014-02-12] =
+= 3.1.4, 2014-02-12 =
+
 * fixed: WooCommerce 2.1 return page after checkout
 
-= 3.1.3 [2014-01-12] =
-* fixed: no function set_error_message() in EwayPaymentsEventsManager (bad copypasta in exception handler; thanks, [digitalblanket](http://profiles.wordpress.org/digitalblanket)!)
+= 3.1.3, 2014-01-12 =
+
+* fixed: no function set_error_message() in EwayPaymentsEventsManager (bad copypasta in exception handler; thanks, [digitalblanket](https://profiles.wordpress.org/digitalblanket)!)
 * fixed: was triggering an exception when Country field removed from Events Manager Pro bookings form
 
-= 3.1.2 [2014-01-03] =
+= 3.1.2, 2014-01-03 =
+
 * changed: credit card field now forces digits only so that number keyboard is used on iPad/iPhone
 * added: filter `em_eway_amount` for changing the booking amount, e.g. adding fees
 
-= 3.1.1 [2013-12-10] =
+= 3.1.1, 2013-12-10 =
+
 * fixed: doco / settings page didn't explain that Beagle requires an Address field
 * changed: permit card numbers with spaces / dashes, but strip before submitting to eWAY
 * changed: move some WooCommerce setting descriptions into tips to reduce screen clutter in admin
 * added: HTML5 text field patterns for credit card number, CVV/CVN
 * added: filter `woocommerce_eway_icon` for changing the payment gateway icon
 
-= 3.1.0 [2013-11-21] =
+= 3.1.0, 2013-11-21 =
+
 * changed: support multiple bookings mode in Events Manager
 * changed: some links to eWAY website
 * added: support for v3 of Another WordPress Classifieds Plugin
 * added: WooCommerce and WP e-Commerce payment method logos
 
-= 3.0.1 [2013-03-07] =
+= 3.0.1, 2013-03-07 =
+
 * changed: update for WooCommerce v2.0.x compatibility
 
-= 3.0.0 [2013-03-01] =
+= 3.0.0, 2013-03-01 =
+
 * added: WooCommerce integration
 * added: Another WordPress Classifieds Plugin integration (sponsored by [Michael Major Media](http://michaelmajor.com.au/) -- thanks!)
 * added: Events Manager integration (sponsored by [Michael Major Media](http://michaelmajor.com.au/) -- thanks!)
 * changed: use WP e-Commerce 2.8.9+ hooks and functions
 * changed: refactored for greater generalisation
 
-= 2.4.0 [2013-01-23] =
+= 2.4.0, 2013-01-23 =
+
 * fixed: declined payments now record status as Payment Declined instead of Incomplete Sale
 * added: record authcode for transactions, and show in Sales Log
 * added: send WP e-Commerce transaction number as both customer reference and invoice reference (customer reference can be filtered)
-* added: support for [Beagle (free)](http://www.eway.com.au/developers/resources/beagle-%28free%29-rules) anti-fraud using geo-IP (Direct Payments only)
+* added: support for [Beagle (free)](https://www.eway.com.au/developers/api/beagle-lite) anti-fraud using geo-IP (Direct Payments only)
 
-= 2.3.1 [2013-01-20] =
+= 2.3.1, 2013-01-20 =
+
 * fixed: close table cell elements in form field template
 
-= 2.3.0 [2013-01-20] =
+= 2.3.0, 2013-01-20 =
+
 * fixed: successful Direct transactions are now marked as Accepted Payment, not Order Received
 * added: eWAY credit card form fields now in template, can be customised by theme
 * added: can now use eWAY Stored Payments, e.g. for merchants who do drop-shipping
 * changed: use WordPress function wp_remote_post() instead of directly calling curl functions
 
-= 2.2.1 [2012-10-22] =
+= 2.2.1, 2012-10-22 =
+
 * fixed: address on eWAY invoice was getting "0, " prepended when PHP < 5.3
 
-= 2.2.0 [2012-09-25] =
+= 2.2.0, 2012-09-25 =
+
 * fixed: country name used in eWAY address field, not country code
 * changed: remote SSL certificate is verified (i.e. eWAY's certificate)
 * added: prevent XML injection attacks when loading eWAY response (security hardening)
 * added: filter hooks for invoice description and reference
 * added: if customer name isn't mandatory and not given, will use cardholder's name
 
-= 2.1.0 [2012-07-03] =
+= 2.1.0, 2012-07-03 =
+
 * changed: CVN is now a required field, no option to omit; Australian banks are all moving to require CVN and some already do
 * added: customer name is now supported, if configured in WP e-Commerce payment admin; card holder name is not seen in eWAY notification emails, so customer name is required for showing who made the purchase
 
-= 2.0.4 [2012-05-13] =
+= 2.0.4, 2012-05-13 =
+
 * fixed: invoice number recorded in eWAY invoice reference field
 
-= 2.0.3 [2012-05-05] =
+= 2.0.3, 2012-05-05 =
+
 * fixed: optional fields for address, email are no longer required for eWAY payment
 
-= 2.0.2 [2012-04-16] =
+= 2.0.2, 2012-04-16 =
+
 * fixed: undeclared array index errors
 
-= 2.0.1 [2012-04-12] =
+= 2.0.1, 2012-04-12 =
+
 * fixed: admin transposed Use Testing Environment and Use CVN Security
 
-= 2.0.0 [2012-04-08] =
+= 2.0.0, 2012-04-08 =
+
 * final cleanup and refactor for public release
 
-= 1.0.0 [2011-09-15] =
+= 1.0.0, 2011-09-15 =
+
 * private version, not released to public
 
 == Upgrade Notice ==
 
-= 2.1.0 =
-CVN is now a required field, no option to omit
+= 3.4.0 =
+
+security update: some precautionary XSS (cross-site scripting) prevention

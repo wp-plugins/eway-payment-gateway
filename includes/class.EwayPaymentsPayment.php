@@ -5,8 +5,8 @@
 *
 * NB: for testing, the only card number seen as valid is '4444333322221111'
 *
-* @link http://www.eway.com.au/developers/api/direct-payments
-* @link http://www.eway.com.au/developers/api/beagle-%28free%29
+* @link https://www.eway.com.au/developers/api/direct-payments
+* @link https://www.eway.com.au/developers/api/beagle-lite
 *
 * copyright (c) 2008-2014 WebAware Pty Ltd, released under GPL v2.1
 */
@@ -15,6 +15,7 @@
 * Class for dealing with an eWAY payment
 */
 class EwayPaymentsPayment {
+
 	// environment / website specific members
 	/**
 	* default FALSE, use eWAY sandbox unless set to TRUE
@@ -174,10 +175,10 @@ class EwayPaymentsPayment {
 	* @param string $accountID eWAY account ID
 	* @param boolean $isLiveSite running on the live (production) website
 	*/
-	public function __construct($accountID, $isLiveSite = FALSE) {
-		$this->sslVerifyPeer = TRUE;
-		$this->isLiveSite = $isLiveSite;
-		$this->accountID = $accountID;
+	public function __construct($accountID, $isLiveSite = false) {
+		$this->sslVerifyPeer	= true;
+		$this->isLiveSite		= $isLiveSite;
+		$this->accountID		= $accountID;
 	}
 
 	/**
@@ -322,12 +323,14 @@ class EwayPaymentsPayment {
 		$response->loadResponseXML($responseXML);
 		return $response;
 	}
+
 }
 
 /**
 * Class for dealing with an eWAY payment response
 */
 class EwayPaymentsResponse {
+
 	/**
 	* For a successful transaction "True" is passed and for a failed transaction "False" is passed.
 	* @var boolean
@@ -395,8 +398,8 @@ class EwayPaymentsResponse {
 	*/
 	public function loadResponseXML($response) {
 		// prevent XML injection attacks, and handle errors without warnings
-		$oldDisableEntityLoader = libxml_disable_entity_loader(TRUE);
-		$oldUseInternalErrors = libxml_use_internal_errors(TRUE);
+		$oldDisableEntityLoader = libxml_disable_entity_loader(true);
+		$oldUseInternalErrors = libxml_use_internal_errors(true);
 
 		try {
 			$xml = simplexml_load_string($response);
@@ -408,22 +411,22 @@ class EwayPaymentsResponse {
 				throw new Exception($errmsg);
 			}
 
-			$this->status = (strcasecmp((string) $xml->ewayTrxnStatus, 'true') === 0);
-			$this->transactionNumber = (string) $xml->ewayTrxnNumber;
-			$this->transactionReference = (string) $xml->ewayTrxnReference;
-			$this->option1 = (string) $xml->ewayTrxnOption1;
-			$this->option2 = (string) $xml->ewayTrxnOption2;
-			$this->option3 = (string) $xml->ewayTrxnOption3;
-			$this->authCode = (string) $xml->ewayAuthCode;
-			$this->error = (string) $xml->ewayTrxnError;
+			$this->status					= (strcasecmp((string) $xml->ewayTrxnStatus, 'true') === 0);
+			$this->transactionNumber		= (string) $xml->ewayTrxnNumber;
+			$this->transactionReference		= (string) $xml->ewayTrxnReference;
+			$this->option1					= (string) $xml->ewayTrxnOption1;
+			$this->option2					= (string) $xml->ewayTrxnOption2;
+			$this->option3					= (string) $xml->ewayTrxnOption3;
+			$this->authCode					= (string) $xml->ewayAuthCode;
+			$this->error					= (string) $xml->ewayTrxnError;
 
-			$this->beagleScore = (string) $xml->ewayBeagleScore;
+			$this->beagleScore				= (string) $xml->ewayBeagleScore;
 
 			// if we got an amount, convert it back into dollars.cents from just cents
 			if (!empty($xml->ewayReturnAmount))
-				$this->amount = floatval($xml->ewayReturnAmount) / 100.0;
+				$this->amount				= floatval($xml->ewayReturnAmount) / 100.0;
 			else
-				$this->amount = NULL;
+				$this->amount				= null;
 
 			// restore old libxml settings
 			libxml_disable_entity_loader($oldDisableEntityLoader);
@@ -437,4 +440,5 @@ class EwayPaymentsResponse {
 			throw new EwayPaymentsException('Error parsing eWAY response: ' . $e->getMessage());
 		}
 	}
+
 }

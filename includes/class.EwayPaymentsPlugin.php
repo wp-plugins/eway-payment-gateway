@@ -4,6 +4,7 @@
 * plugin controller class
 */
 class EwayPaymentsPlugin {
+
 	public $urlBase;									// string: base URL path to files in plugin
 
 	/**
@@ -24,6 +25,8 @@ class EwayPaymentsPlugin {
 	* initialise plugin
 	*/
 	private function __construct() {
+		spl_autoload_register(array(__CLASS__, 'autoload'));
+
 		$this->urlBase = plugin_dir_url(EWAY_PAYMENTS_PLUGIN_FILE);
 
 		add_action('init', array($this, 'init'));
@@ -43,12 +46,13 @@ class EwayPaymentsPlugin {
 	public function init() {
 		// register with Events Manager
 		if (class_exists('EM_Gateways')) {
+			require EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/integrations/class.EwayPaymentsEventsManager.php';
 			EM_Gateways::register_gateway('eway', 'EwayPaymentsEventsManager');
 		}
 
 		// register with Another WordPress Classifieds Plugin
-		global $awpcp;
-		if (isset($awpcp)) {
+		if (isset($GLOBALS['awpcp'])) {
+			require EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/integrations/class.EwayPaymentsAWPCP.php';
 			new EwayPaymentsAWPCP();
 		}
 	}
@@ -82,6 +86,8 @@ class EwayPaymentsPlugin {
 	* @return array
 	*/
 	public function wpscRegister($gateways) {
+		require_once EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/integrations/class.EwayPaymentsWpsc.php';
+
 		return EwayPaymentsWpsc::register($gateways);
 	}
 
@@ -95,6 +101,7 @@ class EwayPaymentsPlugin {
 			// pre-WC2.1 so load compatibility layer
 			require EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/wc-compatibility.php';
 		}
+		require_once EWAY_PAYMENTS_PLUGIN_ROOT . 'includes/integrations/class.EwayPaymentsWoo.php';
 
 		return EwayPaymentsWoo::register($gateways);
 	}
@@ -104,8 +111,8 @@ class EwayPaymentsPlugin {
 	*/
 	public function addPluginDetailsLinks($links, $file) {
 		if ($file == EWAY_PAYMENTS_PLUGIN_NAME) {
-			$links[] = '<a href="http://wordpress.org/support/plugin/eway-payment-gateway">' . __('Get help') . '</a>';
-			$links[] = '<a href="http://wordpress.org/plugins/eway-payment-gateway/">' . __('Rating') . '</a>';
+			$links[] = '<a href="https://wordpress.org/support/plugin/eway-payment-gateway">' . __('Get help') . '</a>';
+			$links[] = '<a href="https://wordpress.org/plugins/eway-payment-gateway/">' . __('Rating') . '</a>';
 			$links[] = '<a href="http://shop.webaware.com.au/downloads/eway-payment-gateway/">' . __('Donate') . '</a>';
 		}
 
@@ -155,7 +162,7 @@ class EwayPaymentsPlugin {
 	* @param string $data
 	* @param bool $sslVerifyPeer whether to validate the SSL certificate
 	* @return string $response
-	* @throws GFDpsPxPayCurlException
+	* @throws EwayPaymentsException
 	*/
 	public static function curlSendRequest($url, $data, $sslVerifyPeer = true) {
 		// send data via HTTPS and receive response
@@ -207,4 +214,20 @@ class EwayPaymentsPlugin {
 		// just check for IPv4 addresses
 		return !!ip2long($maybeIP);
 	}
+
+	/**
+	* autoload classes as/when needed
+	* @param string $class_name name of class to attempt to load
+	*/
+	public static function autoload($class_name) {
+		static $classMap = array (
+			'EwayPaymentsPayment'				=> 'includes/class.EwayPaymentsPayment.php',
+			'EwayPaymentsStoredPayment'			=> 'includes/class.EwayPaymentsStoredPayment.php',
+		);
+
+		if (isset($classMap[$class_name])) {
+			require EWAY_PAYMENTS_PLUGIN_ROOT . $classMap[$class_name];
+		}
+	}
+
 }

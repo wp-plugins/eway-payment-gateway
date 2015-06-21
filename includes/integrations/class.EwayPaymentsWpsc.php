@@ -2,7 +2,7 @@
 
 /**
 * payment gateway integration for WP e-Commerce
-* @link http://docs.getshopped.org/category/developer-documentation/
+* @link http://docs.wpecommerce.org/category/payment-gateways/
 */
 class EwayPaymentsWpsc extends wpsc_merchant {
 
@@ -118,14 +118,12 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 
 		// get purchase logs
 		if ($this->purchase_id > 0) {
-			$sql = 'select totalprice from `' . WPSC_TABLE_PURCHASE_LOGS . '` where id = %d';
-			$purchase_logs = $wpdb->get_row($wpdb->prepare($sql, $this->purchase_id), ARRAY_A);
+			$purchase_logs = new WPSC_Purchase_Log($this->purchase_id);
 		}
 		elseif (!empty($this->session_id)) {
-			$sql = 'select id,totalprice from `' . WPSC_TABLE_PURCHASE_LOGS . '` where sessionid = %s limit 1';
-			$purchase_logs = $wpdb->get_row($wpdb->prepare($sql, $this->session_id), ARRAY_A);
+			$purchase_logs = new WPSC_Purchase_Log($this->session_id, 'sessionid');
 
-			$this->purchase_id = $purchase_logs['id'];
+			$this->purchase_id = $purchase_logs->get('id');
 		}
 		else {
 			$this->set_error_message('No cart ID and no active session!');
@@ -171,23 +169,23 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 			$this->collected_gateway_data['state'],
 			$country,
 		);
-		$eway->address = implode(', ', array_filter($parts, 'strlen'));
+		$eway->address					= implode(', ', array_filter($parts, 'strlen'));
 
 		// use cardholder name for last name if no customer name entered
 		if (empty($eway->firstName) && empty($eway->lastName)) {
-			$eway->lastName = $eway->cardHoldersName;
+			$eway->lastName				= $eway->cardHoldersName;
 		}
 
 		// allow plugins/themes to modify invoice description and reference, and set option fields
-		$eway->invoiceDescription = apply_filters('wpsc_merchant_eway_invoice_desc', $eway->invoiceDescription, $this->purchase_id);
-		$eway->invoiceReference = apply_filters('wpsc_merchant_eway_invoice_ref', $eway->invoiceReference, $this->purchase_id);
-		$eway->option1 = apply_filters('wpsc_merchant_eway_option1', '', $this->purchase_id);
-		$eway->option2 = apply_filters('wpsc_merchant_eway_option2', '', $this->purchase_id);
-		$eway->option3 = apply_filters('wpsc_merchant_eway_option3', '', $this->purchase_id);
+		$eway->invoiceDescription		= apply_filters('wpsc_merchant_eway_invoice_desc', $eway->invoiceDescription, $this->purchase_id);
+		$eway->invoiceReference			= apply_filters('wpsc_merchant_eway_invoice_ref', $eway->invoiceReference, $this->purchase_id);
+		$eway->option1					= apply_filters('wpsc_merchant_eway_option1', '', $this->purchase_id);
+		$eway->option2					= apply_filters('wpsc_merchant_eway_option2', '', $this->purchase_id);
+		$eway->option3					= apply_filters('wpsc_merchant_eway_option3', '', $this->purchase_id);
 
 		// if live, pass through amount exactly, but if using test site, round up to whole dollars or eWAY will fail
-		$total = $purchase_logs['totalprice'];
-		$eway->amount = $isLiveSite ? $total : ceil($total);
+		$total = $purchase_logs->get('totalprice');
+		$eway->amount					= $isLiveSite ? $total : ceil($total);
 
 		try {
 			$response = $eway->processPayment();
@@ -200,20 +198,31 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 				else {
 					$status = 3; // WPSC_Purchase_Log::ACCEPTED_PAYMENT
 				}
+				$log_details = array(
+					'processed'			=> $status,
+					'transactid'		=> $response->transactionNumber,
+					'authcode'			=> $response->authCode,
+				);
 
-				$this->set_transaction_details($response->transactionNumber, $status);
-				$this->set_authcode($response->authCode);
 				if (!empty($response->beagleScore)) {
-					$this->setPaymentNotes('Beagle score: ' . $response->beagleScore);
+					$log_details['notes'] = 'Beagle score: ' . $response->beagleScore;
 				}
+
+				wpsc_update_purchase_log_details($this->purchase_id, $log_details);
+
 				$this->go_to_transaction_results($this->cart_data['session_id']);
 			}
 			else {
 				// transaction was unsuccessful, so record transaction number and the error
 				$status = 6; // WPSC_Purchase_Log::PAYMENT_DECLINED
 				$this->set_error_message(nl2br(esc_html($response->error)));
-				$this->setPaymentNotes($response->error);
-				$this->set_purchase_processed_by_purchid($status);
+
+				$log_details = array(
+					'processed'			=> $status,
+					'notes'				=> $response->error,
+				);
+				wpsc_update_purchase_log_details($this->purchase_id, $log_details);
+
 				return;
 			}
 		}
@@ -295,21 +304,6 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 	}
 
 	/**
-	* update payment log notes (seems to be missing functionality in wpsc)
-	* @param string $notes
-	*/
-	protected function setPaymentNotes($notes) {
-		global $wpdb;
-
-		$wpdb->update(WPSC_TABLE_PURCHASE_LOGS,
-			array('notes' => $notes),
-			array('id' => $this->purchase_id),
-			array('%s'),
-			array('%d')
-		);
-	}
-
-	/**
 	* tell wp-e-commerce about fields we require on the checkout form
 	*/
 	protected static function setCheckoutFields() {
@@ -349,7 +343,7 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 	*/
 	public static function configForm() {
 		ob_start();
-		include EWAY_PAYMENTS_PLUGIN_ROOT . '/views/admin-wpsc.php';
+		include EWAY_PAYMENTS_PLUGIN_ROOT . 'views/admin-wpsc.php';
 		return ob_get_clean();
 	}
 
@@ -358,31 +352,31 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 	*/
 	public static function saveConfig() {
 		if (isset($_POST['ewayCustomerID_id'])) {
-			update_option('ewayCustomerID_id', $_POST['ewayCustomerID_id']);
+			update_option('ewayCustomerID_id', sanitize_text_field(wp_unslash($_POST['ewayCustomerID_id'])));
 		}
 
 		if (isset($_POST['eway_stored'])) {
-			update_option('wpsc_merchant_eway_stored', $_POST['eway_stored']);
+			update_option('wpsc_merchant_eway_stored', $_POST['eway_stored'] ? '1' : '0');
 		}
 
 		if (isset($_POST['eway_test'])) {
-			update_option('eway_test', $_POST['eway_test']);
+			update_option('eway_test', $_POST['eway_test'] ? '1' : '0');
 		}
 
 		if (isset($_POST['eway_th'])) {
-			update_option('wpsc_merchant_eway_th', $_POST['eway_th']);
+			update_option('wpsc_merchant_eway_th', $_POST['eway_th'] ? '1' : '0');
 		}
 
 		if (isset($_POST['eway_beagle'])) {
-			update_option('wpsc_merchant_eway_beagle', $_POST['eway_beagle']);
+			update_option('wpsc_merchant_eway_beagle', $_POST['eway_beagle'] ? '1' : '0');
 		}
 
 		if (isset($_POST['eway_card_msg'])) {
-			update_option('wpsc_merchant_eway_card_msg', $_POST['eway_card_msg']);
+			update_option('wpsc_merchant_eway_card_msg', sanitize_text_field(wp_unslash($_POST['eway_card_msg'])));
 		}
 
 		foreach ((array)$_POST['eway_form'] as $form => $value) {
-			update_option(('eway_form_'.$form), $value);
+			update_option('eway_form_' . $form, $value ? absint($value) : '');
 		}
 
 		return true;
@@ -395,9 +389,10 @@ class EwayPaymentsWpsc extends wpsc_merchant {
 		global $purchlogitem;
 
 		if (!empty($purchlogitem->extrainfo->transactid) || !empty($purchlogitem->extrainfo->authcode)) {
-			include EWAY_PAYMENTS_PLUGIN_ROOT . '/views/admin-wpsc-billing-details.php';
+			include EWAY_PAYMENTS_PLUGIN_ROOT . 'views/admin-wpsc-billing-details.php';
 		}
 	}
+
 }
 
 /**
